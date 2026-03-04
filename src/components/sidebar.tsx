@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   ListChecks,
   Clock,
+  Calendar,
   MessageSquare,
   Radio,
   Brain,
@@ -56,42 +57,43 @@ type NavItem = {
 const isAgentbayHosting = process.env.NEXT_PUBLIC_AGENTBAY_HOSTED === "true";
 
 const navItems: NavItem[] = [
-  // ── Core ──
-  { group: "Core", section: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
+  // ── Overview ──
+  { group: "Overview", section: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
+  { section: "activity", label: "Activity", icon: Activity, href: "/activity" },
+  { section: "usage", label: "Usage", icon: BarChart3, href: "/usage" },
+  // ── Agents ──
+  { group: "Agents", section: "agents", label: "Agents", icon: Users, href: "/agents" },
+  { section: "agents", label: "Subagents", icon: Users2, href: "/agents?tab=subagents", tab: "subagents", isSubItem: true },
   { section: "chat", label: "Chat", icon: MessageCircle, href: "/chat" },
   { section: "channels", label: "Channels", icon: Radio, href: "/channels" },
-  { section: "agents", label: "Agents", icon: Users, href: "/agents" },
-  { section: "agents", label: "Subagents", icon: Users2, href: "/agents?tab=subagents", tab: "subagents", isSubItem: true },
+  { section: "sessions", label: "Sessions", icon: MessageSquare, href: "/sessions" },
   // ── Work ──
   { group: "Work", section: "tasks", label: "Tasks", icon: ListChecks, href: "/tasks" },
-  { section: "sessions", label: "Sessions", icon: MessageSquare, href: "/sessions" },
+  { section: "calendar", label: "Calendar", icon: Calendar, href: "/calendar" },
   { section: "cron", label: "Cron Jobs", icon: Clock, href: "/cron" },
   { section: "cron", label: "Heartbeat", icon: Heart, href: "/heartbeat", tab: "heartbeat", isSubItem: true },
+  { section: "skills", label: "Skills", icon: Wrench, href: "/skills" },
+  { section: "skills", label: "ClawHub", icon: Package, href: "/skills?tab=clawhub", tab: "clawhub", isSubItem: true },
   // ── Knowledge ──
   { group: "Knowledge", section: "memory", label: "Memory", icon: Brain, href: "/memory" },
   { section: "docs", label: "Documents", icon: FolderOpen, href: "/documents" },
   { section: "vectors", label: "Vector DB", icon: Database, href: "/vectors" },
-  // ── Integrations ──
-  { group: "Integrations", section: "skills", label: "Skills", icon: Wrench, href: "/skills" },
-  { section: "skills", label: "ClawHub", icon: Package, href: "/skills?tab=clawhub", tab: "clawhub", isSubItem: true },
-  { section: "audio", label: "Audio & Voice", icon: Volume2, href: "/audio" },
-  { section: "browser", label: "Browser Relay", icon: Globe, href: "/browser" },
-  { section: "search", label: "Web Search", icon: Search, href: "/search" },
-  // ── Configuration ──
-  { group: "Configuration", section: "models", label: "Models", icon: Cpu, href: "/models" },
-  { section: "accounts", label: "Keys & Access", icon: KeyRound, href: "/accounts" },
+  // ── Configure ──
+  { group: "Configure", section: "models", label: "Models", icon: Cpu, href: "/models" },
+  { section: "accounts", label: "API Keys", icon: KeyRound, href: "/accounts" },
   { section: "security", label: "Security", icon: ShieldCheck, href: "/security" },
   { section: "hooks", label: "Hooks", icon: Webhook, href: "/hooks" },
-  ...(!isAgentbayHosting ? [{ section: "tailscale", label: "Tailscale", icon: Waypoints, href: "/tailscale" } as NavItem] : []),
-  { section: "settings", label: "Settings", icon: Settings2, href: "/settings" },
-  { section: "config", label: "Config", icon: Settings, href: "/config" },
-  ...(isAgentbayHosting ? [{ section: "help" as const, label: "Help & support", icon: HelpCircle, href: "/help" } as NavItem] : []),
-  // ── Monitoring ──
-  { group: "Monitoring", section: "activity", label: "Activity", icon: Activity, href: "/activity" },
-  { section: "doctor", label: "Doctor", icon: Stethoscope, href: "/doctor" },
-  { section: "usage", label: "Usage", icon: BarChart3, href: "/usage" },
+  { section: "settings", label: "Preferences", icon: Settings2, href: "/settings" },
+  // ── System ──
+  { group: "System", section: "doctor", label: "Doctor", icon: Stethoscope, href: "/doctor" },
   { section: "terminal", label: "Terminal", icon: SquareTerminal, href: "/terminal" },
   { section: "logs", label: "Logs", icon: Terminal, href: "/logs" },
+  { section: "browser", label: "Browser Relay", icon: Globe, href: "/browser" },
+  { section: "audio", label: "Audio & Voice", icon: Volume2, href: "/audio" },
+  { section: "search", label: "Web Search", icon: Search, href: "/search" },
+  ...(!isAgentbayHosting ? [{ section: "tailscale", label: "Tailscale", icon: Waypoints, href: "/tailscale" } as NavItem] : []),
+  { section: "config", label: "Config", icon: Settings, href: "/config" },
+  ...(isAgentbayHosting ? [{ section: "help" as const, label: "Help & Support", icon: HelpCircle, href: "/help" } as NavItem] : []),
 ];
 
 const SIDEBAR_COLLAPSED_KEY = "sidebar_collapsed";
@@ -121,6 +123,7 @@ function deriveSectionFromPath(pathname: string): string | null {
     "chat",
     "agents",
     "tasks",
+    "calendar",
     "sessions",
     "cron",
     "heartbeat",
@@ -211,7 +214,7 @@ function SidebarNav({ onNavigate, collapsed }: { onNavigate?: () => void; collap
         const linkClass = cn(
           "group relative flex items-center gap-2.5 rounded-md py-1.5 text-sm font-medium transition-colors duration-150",
           collapsed ? "justify-center px-2" : "px-2.5",
-          item.isSubItem && !collapsed && "ml-6 py-1 text-xs",
+          item.isSubItem && !collapsed && "ml-6 py-1.5 text-xs",
           isDisabled
             ? "cursor-not-allowed opacity-50 text-stone-400 dark:text-stone-500"
             : isActive
@@ -264,7 +267,7 @@ function SidebarNav({ onNavigate, collapsed }: { onNavigate?: () => void; collap
                         setCronExpanded((prev) => !prev);
                       }
                     }}
-                    className="rounded-md p-0.5 text-foreground/60 transition-colors hover:text-foreground"
+                    className="rounded-md p-1.5 text-foreground/60 transition-colors hover:text-foreground"
                     aria-label={
                       isSkillsParent
                         ? (showSkillsChildren ? "Collapse skills submenu" : "Expand skills submenu")
@@ -440,6 +443,7 @@ export function Sidebar() {
             type="button"
             onClick={() => setMobileOpen(false)}
             className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground"
+            aria-label="Close menu"
           >
             <X className="h-5 w-5" />
           </button>

@@ -71,6 +71,13 @@ export function NotificationCenter() {
   });
   const panelRef = useRef<HTMLDivElement>(null);
 
+  // Persist readIds to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem("notif_read_ids", JSON.stringify([...readIds]));
+    } catch { /* ignore */ }
+  }, [readIds]);
+
   const fetchNotifications = useCallback(async () => {
     try {
       const res = await fetch("/api/activity", { cache: "no-store" });
@@ -139,7 +146,6 @@ export function NotificationCenter() {
     setReadIds((prev) => {
       const next = new Set(prev);
       next.add(event.id);
-      try { localStorage.setItem("notif_read_ids", JSON.stringify([...next])); } catch { /* ignore */ }
       return next;
     });
     setOpen(false);

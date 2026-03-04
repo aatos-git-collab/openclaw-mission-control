@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo, useSyncExternalStore } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Clock,
@@ -34,6 +34,8 @@ import { SectionBody, SectionHeader, SectionLayout } from "@/components/section-
 import { InlineSpinner, LoadingState } from "@/components/ui/loading-state";
 import {
   getTimeFormatSnapshot,
+  getTimeFormatServerSnapshot,
+  subscribeTimeFormatPreference,
   is12HourTimeFormat,
   withTimeFormat,
   type TimeFormatPreference,
@@ -114,9 +116,8 @@ function fmtAgo(ms: number | undefined): string {
   return `${Math.floor(diff / 86400000)}d ago`;
 }
 
-function fmtDate(ms: number | undefined): string {
+function fmtDate(ms: number | undefined, timeFormat: TimeFormatPreference): string {
   if (!ms) return "—";
-  const timeFormat = getTimeFormatSnapshot();
   return new Date(ms).toLocaleString(
     "en-US",
     withTimeFormat(
@@ -131,9 +132,8 @@ function fmtDate(ms: number | undefined): string {
   );
 }
 
-function fmtFullDate(ms: number | undefined): string {
+function fmtFullDate(ms: number | undefined, timeFormat: TimeFormatPreference): string {
   if (!ms) return "—";
-  const timeFormat = getTimeFormatSnapshot();
   return new Date(ms).toLocaleString(
     "en-US",
     withTimeFormat(
@@ -152,8 +152,7 @@ function fmtFullDate(ms: number | undefined): string {
 }
 
 /** Turn a cron expression into a short human-readable phrase (e.g. "Every 6 hours", "Daily at 8:00 AM"). */
-function cronToHuman(expr: string): string {
-  const timeFormat = getTimeFormatSnapshot();
+function cronToHuman(expr: string, timeFormat: TimeFormatPreference): string {
   const parts = expr.trim().split(/\s+/);
   if (parts.length < 5) return expr;
   const [min, hour, day, month, dow] = parts;
@@ -208,9 +207,9 @@ function cronToHuman(expr: string): string {
   return expr;
 }
 
-function scheduleDisplay(s: CronJob["schedule"]): string {
+function scheduleDisplay(s: CronJob["schedule"], timeFormat: TimeFormatPreference): string {
   if (s.kind === "cron" && s.expr) {
-    const human = cronToHuman(s.expr);
+    const human = cronToHuman(s.expr, timeFormat);
     return human !== s.expr ? `${human}${s.tz ? ` (${s.tz})` : ""}` : `${s.expr}${s.tz ? ` (${s.tz})` : ""}`;
   }
   if (s.kind === "every" && s.everyMs) {
@@ -222,7 +221,7 @@ function scheduleDisplay(s: CronJob["schedule"]): string {
 
 function scheduleOptionLabel(opt: ScheduleOption, timeFormat: TimeFormatPreference): string {
   if (opt.kind === "cron" && "expr" in opt) {
-    const human = cronToHuman(opt.expr);
+    const human = cronToHuman(opt.expr, timeFormat);
     if (human !== opt.expr) return human;
   }
   if (!is12HourTimeFormat(timeFormat)) {
@@ -513,7 +512,7 @@ function buildFailureGuide(error: string, delivery: CronJob["delivery"]): Failur
 
 /* ── Run detail card ──────────────────────────────── */
 
-function RunCard({ run }: { run: RunEntry }) {
+function RunCard({ run, timeFormat }: { run: RunEntry; timeFormat: TimeFormatPreference }) {
   const [showFull, setShowFull] = useState(false);
 
   return (
@@ -533,7 +532,7 @@ function RunCard({ run }: { run: RunEntry }) {
           <AlertCircle className="h-3.5 w-3.5 shrink-0 text-red-500" />
         )}
         <span className="font-medium text-foreground/90">
-          {fmtFullDate(run.ts)}
+          {fmtFullDate(run.ts, timeFormat)}
         </span>
         <span className="text-muted-foreground/80">·</span>
         <span className="text-muted-foreground/85">{fmtDuration(run.durationMs)}</span>
@@ -595,13 +594,13 @@ function RunCard({ run }: { run: RunEntry }) {
           )}
           {run.runAtMs && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground/80">
-              <span>Scheduled: {fmtFullDate(run.runAtMs)}</span>
+              <span>Scheduled: {fmtFullDate(run.runAtMs, timeFormat)}</span>
               <span>·</span>
-              <span>Ran: {fmtFullDate(run.ts)}</span>
+              <span>Ran: {fmtFullDate(run.ts, timeFormat)}</span>
               {run.nextRunAtMs && (
                 <>
                   <span>·</span>
-                  <span>Next: {fmtFullDate(run.nextRunAtMs)}</span>
+                  <span>Next: {fmtFullDate(run.nextRunAtMs, timeFormat)}</span>
                 </>
               )}
             </div>
@@ -945,6 +944,7 @@ function EditCronForm({
             }
           }}
           rows={5}
+          aria-label="Prompt / Message"
           className="w-full resize-y rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-xs leading-5 text-stone-900 outline-none focus:border-emerald-500/30 dark:border-[#2c343d] dark:bg-[#15191d] dark:text-[#f5f7fa]"
           placeholder="Instructions or prompt for the agent run…"
         />
@@ -1071,6 +1071,7 @@ function EditCronForm({
                   disabled
                   value=""
                   placeholder="—"
+                  aria-label="Recipient (no delivery)"
                   className="w-full rounded-lg border border-foreground/10 bg-muted/80 px-3 py-2 font-mono text-xs text-foreground/90 outline-none disabled:opacity-40"
                 />
               ) : deliveryMode === "webhook" ? (
@@ -1101,6 +1102,7 @@ function EditCronForm({
                         setTo(v);
                       }
                     }}
+                    aria-label="Select recipient"
                     className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 font-mono text-xs text-stone-900 outline-none focus:border-emerald-500/30 dark:border-[#2c343d] dark:bg-[#15191d] dark:text-[#f5f7fa]"
                   >
                     <option value="">Select recipient…</option>
@@ -1340,7 +1342,11 @@ function CreateCronForm({
   onCreated: () => void;
   onCancel: () => void;
 }) {
-  const timeFormat = getTimeFormatSnapshot();
+  const timeFormat = useSyncExternalStore(
+    subscribeTimeFormatPreference,
+    getTimeFormatSnapshot,
+    getTimeFormatServerSnapshot,
+  );
   // ── Step management ──
   const [step, setStep] = useState(1); // 1=basics, 2=schedule, 3=payload, 4=delivery, 5=review
   const totalSteps = 5;
@@ -1585,6 +1591,7 @@ function CreateCronForm({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Morning Brief, Daily Sync, Weekly Report..."
+                aria-label="Job name"
                 className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2.5 text-sm text-stone-900 outline-none focus:border-emerald-500/30 dark:border-[#2c343d] dark:bg-[#15191d] dark:text-[#f5f7fa]"
                 autoFocus
               />
@@ -1790,6 +1797,7 @@ function CreateCronForm({
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 rows={5}
+                aria-label={payloadKind === "agentTurn" ? "Agent Prompt" : "System Event Text"}
                 placeholder={
                   payloadKind === "agentTurn"
                     ? "e.g. Summarize the latest news and send me a brief update..."
@@ -1916,7 +1924,7 @@ function CreateCronForm({
                   )}
                 </div>
                 {deliveryMode === "none" ? (
-                  <input disabled value="" placeholder="—" className="w-full rounded-lg border border-foreground/10 bg-muted/80 px-3 py-2 font-mono text-xs text-foreground/90 outline-none disabled:opacity-40" />
+                  <input disabled value="" placeholder="—" aria-label="Recipient (no delivery)" className="w-full rounded-lg border border-foreground/10 bg-muted/80 px-3 py-2 font-mono text-xs text-foreground/90 outline-none disabled:opacity-40" />
                 ) : deliveryMode === "webhook" ? (
                   <input
                     value={to}
@@ -1939,6 +1947,7 @@ function CreateCronForm({
                         if (v === "__custom__") setCustomTo(true);
                         else { setCustomTo(false); setTo(v); }
                       }}
+                      aria-label="Select recipient"
                       className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 font-mono text-xs text-stone-900 outline-none focus:border-emerald-500/30 dark:border-[#2c343d] dark:bg-[#15191d] dark:text-[#f5f7fa]"
                     >
                       <option value="">Select recipient…</option>
@@ -2034,10 +2043,10 @@ function CreateCronForm({
                   {simpleScheduleOption !== "custom" && simpleScheduleOption !== "at"
                     ? (() => {
                         const opt = SCHEDULE_SIMPLE_OPTIONS.find((o) => o.id === simpleScheduleOption);
-                        return opt ? scheduleOptionLabel(opt, timeFormat) : (scheduleKind === "cron" ? cronToHuman(cronExpr) : `Every ${everyInterval}`);
+                        return opt ? scheduleOptionLabel(opt, timeFormat) : (scheduleKind === "cron" ? cronToHuman(cronExpr, timeFormat) : `Every ${everyInterval}`);
                       })()
                     : scheduleKind === "cron"
-                      ? cronToHuman(cronExpr)
+                      ? cronToHuman(cronExpr, timeFormat)
                       : scheduleKind === "every"
                         ? `Every ${everyInterval}`
                         : atTime}
@@ -2143,6 +2152,11 @@ export function CronView() {
   const searchParams = useSearchParams();
   const showMode = searchParams.get("show"); // "errors" to auto-expand first error
   const targetJobId = searchParams.get("job");
+  const timeFormat = useSyncExternalStore(
+    subscribeTimeFormatPreference,
+    getTimeFormatSnapshot,
+    getTimeFormatServerSnapshot,
+  );
   const [jobs, setJobs] = useState<CronJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -2648,7 +2662,7 @@ export function CronView() {
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground/85">
-                    {scheduleDisplay(job.schedule)} &bull; {job.agentId}
+                    {scheduleDisplay(job.schedule, timeFormat)} &bull; {job.agentId}
                     {st.nextRunAtMs && (
                       <>
                         {" "}&bull; Next: {fmtAgo(st.nextRunAtMs)}
@@ -2883,7 +2897,7 @@ export function CronView() {
                         <Calendar className="h-3 w-3 text-muted-foreground/70" />
                         <span className="text-muted-foreground/85">Schedule</span>
                         <span className="ml-auto font-mono text-foreground/85">
-                          {scheduleDisplay(job.schedule)}
+                          {scheduleDisplay(job.schedule, timeFormat)}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -2907,7 +2921,7 @@ export function CronView() {
                         <FileText className="h-3 w-3 text-muted-foreground/70" />
                         <span className="text-muted-foreground/85">Created</span>
                         <span className="ml-auto text-foreground/85">
-                          {fmtDate(job.createdAtMs)}
+                          {fmtDate(job.createdAtMs, timeFormat)}
                         </span>
                       </div>
                       {job.updatedAtMs && (
@@ -2915,7 +2929,7 @@ export function CronView() {
                           <FileText className="h-3 w-3 text-muted-foreground/70" />
                           <span className="text-muted-foreground/85">Updated</span>
                           <span className="ml-auto text-foreground/85">
-                            {fmtDate(job.updatedAtMs)}
+                            {fmtDate(job.updatedAtMs, timeFormat)}
                           </span>
                         </div>
                       )}
@@ -3006,7 +3020,7 @@ export function CronView() {
                           {fmtAgo(st.lastRunAtMs)}
                         </p>
                         <p className="text-xs text-muted-foreground/75">
-                          {fmtDate(st.lastRunAtMs)}
+                          {fmtDate(st.lastRunAtMs, timeFormat)}
                         </p>
                       </div>
                       <div className="rounded-lg border border-foreground/5 bg-muted/40 px-3 py-2 text-center">
@@ -3015,7 +3029,7 @@ export function CronView() {
                           {fmtAgo(st.nextRunAtMs)}
                         </p>
                         <p className="text-xs text-muted-foreground/75">
-                          {fmtDate(st.nextRunAtMs)}
+                          {fmtDate(st.nextRunAtMs, timeFormat)}
                         </p>
                       </div>
                       <div className="rounded-lg border border-foreground/5 bg-muted/40 px-3 py-2 text-center">
@@ -3108,7 +3122,7 @@ export function CronView() {
                     ) : (
                       <div className="space-y-2">
                         {jobRuns.map((run, i) => (
-                          <RunCard key={`${run.ts}-${i}`} run={run} />
+                          <RunCard key={`${run.ts}-${i}`} run={run} timeFormat={timeFormat} />
                         ))}
                       </div>
                     )}

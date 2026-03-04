@@ -1,10 +1,11 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { DashboardView } from "@/components/dashboard-view";
 import { ChatView } from "@/components/chat-view";
 import { PanelErrorBoundary } from "@/components/panel-error-boundary";
+import { GatewayOfflineBanner } from "@/components/gateway-offline-banner";
 import { setChatActive } from "@/lib/chat-store";
 
 function SectionLoading() {
@@ -236,10 +237,15 @@ function SectionContent({ section }: { section: DashboardSection }) {
 
 export function RouteSectionView({ section }: { section: DashboardSection }) {
   const isChatSection = section === "chat";
+  const [chatResetKey, setChatResetKey] = useState(0);
 
   useEffect(() => {
     setChatActive(isChatSection);
     return () => setChatActive(false);
+  }, [isChatSection]);
+
+  useEffect(() => {
+    if (isChatSection) setChatResetKey(k => k + 1);
   }, [isChatSection]);
 
   return (
@@ -247,13 +253,14 @@ export function RouteSectionView({ section }: { section: DashboardSection }) {
       <div
         className={isChatSection ? "flex flex-1 flex-col overflow-hidden" : "hidden"}
       >
-        <PanelErrorBoundary section="chat">
+        <PanelErrorBoundary key={chatResetKey} section="chat">
           <ChatView isVisible={isChatSection} />
         </PanelErrorBoundary>
       </div>
 
       {!isChatSection && (
         <PanelErrorBoundary key={section} section={section}>
+          {section !== "dashboard" && <GatewayOfflineBanner />}
           <SectionContent section={section} />
         </PanelErrorBoundary>
       )}

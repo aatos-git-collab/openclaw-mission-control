@@ -1617,7 +1617,8 @@ function ModelPicker({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search models..."
-              className="flex-1 bg-transparent text-xs text-foreground/90 placeholder:text-muted-foreground/40 outline-none"
+              aria-label="Search models"
+              className="flex-1 bg-transparent text-xs text-foreground/90 placeholder:text-muted-foreground/60 outline-none"
             />
             {search && (
               <button type="button" onClick={() => setSearch("")} className="text-muted-foreground/40 hover:text-foreground/60">
@@ -1796,7 +1797,8 @@ function ModelPicker({
                     onChange={(e) => setApiKey(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSaveKey(); } }}
                     placeholder={PROVIDER_META[addingProvider]?.keyHint || "Paste API key..."}
-                    className="w-full rounded-lg border border-foreground/10 bg-card px-3 py-2 pr-8 text-xs font-mono text-foreground/90 placeholder:text-muted-foreground/30 focus:border-[var(--accent-brand-border)] focus:outline-none"
+                    aria-label="API key"
+                    className="w-full rounded-lg border border-foreground/10 bg-card px-3 py-2 pr-8 text-xs font-mono text-foreground/90 placeholder:text-muted-foreground/50 focus:border-[var(--accent-brand-border)] focus:outline-none"
                     autoFocus
                   />
                   <button
@@ -2142,7 +2144,8 @@ function ChannelBindingPicker({
                   onChange={(e) => setAccountId(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleBindChannel(selectedChannel); } }}
                   placeholder="Account ID (optional — leave empty for all)"
-                  className="flex-1 rounded-lg border border-foreground/10 bg-card px-3 py-2 text-xs text-foreground/90 placeholder:text-muted-foreground/40 focus:border-[var(--accent-brand-border)] focus:outline-none"
+                  aria-label="Account ID (optional)"
+                  className="flex-1 rounded-lg border border-foreground/10 bg-card px-3 py-2 text-xs text-foreground/90 placeholder:text-muted-foreground/60 focus:border-[var(--accent-brand-border)] focus:outline-none"
                   autoFocus
                   disabled={disabled}
                 />
@@ -2182,7 +2185,8 @@ function ChannelBindingPicker({
                       onChange={(e) => setTokenInput(e.target.value)}
                       onKeyDown={(e) => { if (e.key === "Enter" && tokenInput.trim()) { e.preventDefault(); handleSetupToken(); } }}
                       placeholder={selectedChannel.tokenPlaceholder || "Paste token here..."}
-                      className="w-full rounded-lg border border-foreground/10 bg-card px-3 py-2 text-xs font-mono text-foreground/90 placeholder:text-muted-foreground/30 focus:border-[var(--accent-brand-border)] focus:outline-none"
+                      aria-label={selectedChannel.tokenLabel || "Token"}
+                      className="w-full rounded-lg border border-foreground/10 bg-card px-3 py-2 text-xs font-mono text-foreground/90 placeholder:text-muted-foreground/50 focus:border-[var(--accent-brand-border)] focus:outline-none"
                       autoFocus
                       disabled={saving}
                     />
@@ -2197,7 +2201,8 @@ function ChannelBindingPicker({
                         value={appTokenInput}
                         onChange={(e) => setAppTokenInput(e.target.value)}
                         placeholder="xapp-..."
-                        className="w-full rounded-lg border border-foreground/10 bg-card px-3 py-2 text-xs font-mono text-foreground/90 placeholder:text-muted-foreground/30 focus:border-[var(--accent-brand-border)] focus:outline-none"
+                        aria-label="App Token (Socket Mode)"
+                        className="w-full rounded-lg border border-foreground/10 bg-card px-3 py-2 text-xs font-mono text-foreground/90 placeholder:text-muted-foreground/50 focus:border-[var(--accent-brand-border)] focus:outline-none"
                         disabled={saving}
                       />
                     </div>
@@ -2510,7 +2515,7 @@ function AddAgentModal({
                 value={name}
                 onChange={(e) => setName(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ""))}
                 placeholder="e.g. work, research, creative"
-                className="w-full rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2.5 text-sm text-foreground/90 placeholder:text-muted-foreground/40 focus:border-[var(--accent-brand-border)] focus:outline-none"
+                className="w-full rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2.5 text-sm text-foreground/90 placeholder:text-muted-foreground/60 focus:border-[var(--accent-brand-border)] focus:outline-none"
                 disabled={busy}
               />
               <p className="mt-1 text-xs text-muted-foreground/50">
@@ -2527,7 +2532,7 @@ function AddAgentModal({
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder={name ? `e.g. ${name.charAt(0).toUpperCase() + name.slice(1)}` : "Friendly name in UI"}
-                className="w-full rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2.5 text-sm text-foreground/90 placeholder:text-muted-foreground/40 focus:border-[var(--accent-brand-border)] focus:outline-none"
+                className="w-full rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2.5 text-sm text-foreground/90 placeholder:text-muted-foreground/60 focus:border-[var(--accent-brand-border)] focus:outline-none"
                 disabled={busy}
               />
             </div>
@@ -2599,7 +2604,7 @@ function AddAgentModal({
                     value={workspace}
                     onChange={(e) => setWorkspace(e.target.value)}
                     placeholder={`~/.openclaw/workspace-${name || "<name>"}`}
-                    className="w-full rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-xs font-mono text-foreground/80 placeholder:text-muted-foreground/40 focus:border-[var(--accent-brand-border)] focus:outline-none"
+                    className="w-full rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-xs font-mono text-foreground/80 placeholder:text-muted-foreground/60 focus:border-[var(--accent-brand-border)] focus:outline-none"
                     disabled={busy}
                   />
                   <p className="mt-1 text-xs text-muted-foreground/40">
@@ -2615,7 +2620,7 @@ function AddAgentModal({
                     value={agentDir}
                     onChange={(e) => setAgentDir(e.target.value)}
                     placeholder={`~/.openclaw/agents/${name || "<name>"}/agent`}
-                    className="w-full rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-xs font-mono text-foreground/80 placeholder:text-muted-foreground/40 focus:border-[var(--accent-brand-border)] focus:outline-none"
+                    className="w-full rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-xs font-mono text-foreground/80 placeholder:text-muted-foreground/60 focus:border-[var(--accent-brand-border)] focus:outline-none"
                     disabled={busy}
                   />
                   <p className="mt-1 text-xs text-muted-foreground/40">
@@ -3098,7 +3103,7 @@ function EditAgentModal({
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder={agent.id}
-                className="mt-1.5 w-full rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-sm text-foreground/90 placeholder:text-muted-foreground/40 focus:border-[var(--accent-brand-border)] focus:outline-none"
+                className="mt-1.5 w-full rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-sm text-foreground/90 placeholder:text-muted-foreground/60 focus:border-[var(--accent-brand-border)] focus:outline-none"
                 disabled={mutating}
               />
             </label>
@@ -3111,7 +3116,7 @@ function EditAgentModal({
                   value={identityName}
                   onChange={(e) => setIdentityName(e.target.value)}
                   placeholder={agent.name}
-                  className="mt-1.5 w-full rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-xs text-foreground/90 placeholder:text-muted-foreground/40 focus:border-[var(--accent-brand-border)] focus:outline-none"
+                  className="mt-1.5 w-full rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-xs text-foreground/90 placeholder:text-muted-foreground/60 focus:border-[var(--accent-brand-border)] focus:outline-none"
                   disabled={mutating}
                 />
               </label>
@@ -3122,7 +3127,7 @@ function EditAgentModal({
                   value={identityEmoji}
                   onChange={(e) => setIdentityEmoji(e.target.value)}
                   placeholder={agent.emoji}
-                  className="mt-1.5 w-full rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-xs text-foreground/90 placeholder:text-muted-foreground/40 focus:border-[var(--accent-brand-border)] focus:outline-none"
+                  className="mt-1.5 w-full rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-xs text-foreground/90 placeholder:text-muted-foreground/60 focus:border-[var(--accent-brand-border)] focus:outline-none"
                   disabled={mutating}
                 />
               </label>
@@ -3133,7 +3138,7 @@ function EditAgentModal({
                   value={identityTheme}
                   onChange={(e) => setIdentityTheme(e.target.value)}
                   placeholder={agent.identityTheme || "default"}
-                  className="mt-1.5 w-full rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-xs text-foreground/90 placeholder:text-muted-foreground/40 focus:border-[var(--accent-brand-border)] focus:outline-none"
+                  className="mt-1.5 w-full rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-xs text-foreground/90 placeholder:text-muted-foreground/60 focus:border-[var(--accent-brand-border)] focus:outline-none"
                   disabled={mutating}
                 />
               </label>
@@ -3144,7 +3149,7 @@ function EditAgentModal({
                   value={identityAvatar}
                   onChange={(e) => setIdentityAvatar(e.target.value)}
                   placeholder={agent.identityAvatar || "avatars/agent.png"}
-                  className="mt-1.5 w-full rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-xs text-foreground/90 placeholder:text-muted-foreground/40 focus:border-[var(--accent-brand-border)] focus:outline-none"
+                  className="mt-1.5 w-full rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-xs text-foreground/90 placeholder:text-muted-foreground/60 focus:border-[var(--accent-brand-border)] focus:outline-none"
                   disabled={mutating}
                 />
               </label>
@@ -3403,7 +3408,8 @@ function EditAgentModal({
                   value={deleteConfirmText}
                   onChange={(e) => setDeleteConfirmText(e.target.value)}
                   placeholder={agent.id}
-                  className="w-full rounded-lg border border-red-500/30 bg-black/20 px-3 py-2 text-xs text-red-100 placeholder:text-red-200/40 focus:border-red-400/60 focus:outline-none"
+                  aria-label={`Type ${agent.id} to confirm deletion`}
+                  className="w-full rounded-lg border border-red-500/30 bg-black/20 px-3 py-2 text-xs text-red-100 placeholder:text-red-200/60 focus:border-red-400/60 focus:outline-none"
                   disabled={mutating}
                 />
                 <div className="flex items-center gap-2">
@@ -3779,7 +3785,8 @@ function WorkspaceFilesModal({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Filter files by path..."
-              className="flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground/50"
+              aria-label="Filter files by path"
+              className="flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground/60"
             />
           </div>
           <p className="text-xs text-muted-foreground/70">

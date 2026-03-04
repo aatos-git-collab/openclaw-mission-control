@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useSyncExternalStore } from "react";
 import {
   Plus,
   ChevronLeft,
@@ -25,7 +25,13 @@ import {
 import { cn } from "@/lib/utils";
 import { LoadingState } from "@/components/ui/loading-state";
 import { SectionLayout } from "@/components/section-layout";
-import { getTimeFormatSnapshot, withTimeFormat } from "@/lib/time-format-preference";
+import { useFocusTrap, useBodyScrollLock } from "@/hooks/use-modal-accessibility";
+import {
+  getTimeFormatSnapshot,
+  getTimeFormatServerSnapshot,
+  subscribeTimeFormatPreference,
+  withTimeFormat,
+} from "@/lib/time-format-preference";
 
 /* ── types ─────────────────────────────────────── */
 
@@ -78,7 +84,11 @@ const PRIORITIES = ["high", "medium", "low"];
 /* ── component ─────────────────────────────────── */
 
 export function TasksView() {
-  const timeFormat = getTimeFormatSnapshot();
+  const timeFormat = useSyncExternalStore(
+    subscribeTimeFormatPreference,
+    getTimeFormatSnapshot,
+    getTimeFormatServerSnapshot,
+  );
   const [data, setData] = useState<KanbanData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | null>(null);
@@ -92,6 +102,11 @@ export function TasksView() {
   const [renamingTaskId, setRenamingTaskId] = useState<number | null>(null);
   const [detailTaskId, setDetailTaskId] = useState<number | null>(null);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+
+  // Modal accessibility: focus trapping and body scroll lock
+  const detailFocusTrapRef = useFocusTrap(detailTaskId != null);
+  const lightboxFocusTrapRef = useFocusTrap(lightboxImage != null);
+  useBodyScrollLock(detailTaskId != null || lightboxImage != null);
   const streamRef = useRef<EventSource | null>(null);
   const [agents, setAgents] = useState<AgentInfo[]>([]);
   const [dispatchingTaskIds, setDispatchingTaskIds] = useState<Set<number>>(new Set());
@@ -376,16 +391,17 @@ export function TasksView() {
         </p>
       </div>
 
-      {/* Kanban columns */}
-      <div className="flex flex-col md:flex-row flex-1 gap-4 md:gap-6 overflow-x-auto px-4 md:px-6 pb-6">
-        {columns.map((col) => {
+      {/* Kanban columns — horizontal scroll; columns fixed width; card content wraps vertically */}
+      <div className="flex-1 min-h-0 min-w-0 overflow-x-auto overflow-y-hidden px-4 md:px-6 pb-6">
+        <div className="flex flex-col md:flex-row md:flex-nowrap gap-4 md:gap-6 pb-2 md:pb-0 w-max md:w-max">
+          {columns.map((col) => {
           const colTasks = tasks.filter((t) => t.column === col.id);
           const isDragTarget = dragOverColumn === col.id && draggingTaskId !== null;
           return (
             <div
               key={col.id}
               className={cn(
-                "flex md:min-w-80 flex-1 flex-col rounded-xl border border-foreground/5 bg-muted/30 py-3 px-3 transition-all",
+                "flex w-[280px] md:w-80 flex-shrink-0 flex-col min-w-0 overflow-hidden rounded-xl border border-foreground/5 bg-muted/30 py-3 px-3 transition-all",
                 isDragTarget && "bg-violet-500/10 border-violet-500/20 ring-1 ring-inset ring-violet-500/20"
               )}
               onDragOver={(e) => {
@@ -408,12 +424,12 @@ export function TasksView() {
                 setDragOverColumn(null);
               }}
             >
-              <div className="mb-3 flex items-center gap-2 px-1">
+              <div className="mb-3 flex min-w-0 items-center gap-2 px-1">
                 <div
-                  className="h-3 w-3 rounded-full shadow-sm"
+                  className="h-3 w-3 shrink-0 rounded-full shadow-sm"
                   style={{ backgroundColor: col.color }}
                 />
-                <h3 className="text-sm font-semibold text-foreground/80">
+                <h3 className="min-w-0 truncate text-sm font-semibold text-foreground/80">
                   {col.title}
                 </h3>
                 <span
@@ -461,7 +477,7 @@ export function TasksView() {
                 />
               )}
 
-              <div className="flex flex-1 flex-col gap-2.5 overflow-y-auto">
+              <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto overflow-x-hidden min-w-0">
                 {colTasks.length === 0 && addingToColumn !== col.id ? (
                   <div className={cn(
                     "flex items-center justify-center rounded-lg border border-dashed py-8 text-xs transition-colors",
@@ -519,6 +535,7 @@ export function TasksView() {
             </div>
           );
         })}
+        </div>
       </div>
 
       {/* Task detail popup */}
@@ -531,11 +548,12 @@ export function TasksView() {
           <div
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
             onClick={() => setDetailTaskId(null)}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Task details"
           >
             <div
+              ref={detailFocusTrapRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Task details"
               className="relative w-full max-w-md rounded-xl border border-foreground/10 bg-card shadow-xl"
               onClick={(e) => e.stopPropagation()}
             >
@@ -640,6 +658,7 @@ export function TasksView() {
                           key={`${path}-${i}`}
                           type="button"
                           onClick={() => setLightboxImage(attachmentUrl(path))}
+                          aria-label={`View attachment ${i + 1}`}
                           className="overflow-hidden rounded-lg border border-foreground/10 bg-muted/50 transition-opacity hover:opacity-90 focus:ring-2 focus:ring-violet-500/50"
                         >
                           <img
@@ -701,24 +720,29 @@ export function TasksView() {
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center bg-black/85 p-4"
           onClick={() => setLightboxImage(null)}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Image preview"
         >
-          <button
-            type="button"
-            onClick={() => setLightboxImage(null)}
-            className="absolute right-3 top-3 rounded-full bg-white/10 p-2 text-white hover:bg-white/20 transition-colors"
-            aria-label="Close"
-          >
-            <X className="h-5 w-5" />
-          </button>
-          <img
-            src={lightboxImage}
-            alt="Attachment"
-            className="max-h-full max-w-full object-contain rounded-lg shadow-2xl"
+          <div
+            ref={lightboxFocusTrapRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Image preview"
+            className="relative flex items-center justify-center"
             onClick={(e) => e.stopPropagation()}
-          />
+          >
+            <button
+              type="button"
+              onClick={() => setLightboxImage(null)}
+              className="absolute right-3 top-3 rounded-full bg-white/10 p-2 text-white hover:bg-white/20 transition-colors"
+              aria-label="Close image preview"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <img
+              src={lightboxImage}
+              alt="Attachment"
+              className="max-h-full max-w-full object-contain rounded-lg shadow-2xl"
+            />
+          </div>
         </div>
       )}
     </SectionLayout>
@@ -781,7 +805,7 @@ function TaskCard({
   return (
     <div
       className={cn(
-        "group rounded-xl border border-foreground/10 bg-card p-3.5 shadow-sm transition-all hover:border-foreground/15 hover:shadow-md",
+        "group min-w-0 rounded-xl border border-foreground/10 bg-card p-3.5 shadow-sm transition-all hover:border-foreground/15 hover:shadow-md",
         isDragging && "opacity-40 scale-95",
         !isRenaming && "cursor-grab active:cursor-grabbing"
       )}
@@ -825,7 +849,7 @@ function TaskCard({
             />
           ) : (
             <p
-              className="text-sm font-medium text-foreground/90"
+              className="break-words text-sm font-medium text-foreground/90"
               onDoubleClick={(e) => {
                 e.preventDefault();
                 onStartRename();
@@ -836,7 +860,7 @@ function TaskCard({
             </p>
           )}
           {task.description && !isRenaming && (
-            <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
+            <p className="mt-1 line-clamp-2 break-words text-xs leading-5 text-muted-foreground">
               {task.description}
             </p>
           )}
@@ -1574,6 +1598,7 @@ function EditTaskInline({
           onClick={onDelete}
           className="rounded p-1 text-muted-foreground/60 transition-colors hover:bg-red-500/20 hover:text-red-400"
           title="Delete task"
+          aria-label="Delete task"
         >
           <Trash2 className="h-3.5 w-3.5" />
         </button>
