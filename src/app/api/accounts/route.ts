@@ -1126,10 +1126,7 @@ export async function POST(request: NextRequest) {
     }
 
     const cfg = await gatewayCall<GatewayConfigGet>("config.get", undefined, 15000);
-    const baseHash = String(cfg.hash || "");
-    if (!baseHash) {
-      return jsonNoStore({ ok: false, error: "Missing config hash from gateway." }, { status: 500 });
-    }
+    const baseHash = String(cfg?.hash || "");
 
     await gatewayCall(
       "config.patch",

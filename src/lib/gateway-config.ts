@@ -123,10 +123,7 @@ export async function patchConfig(
         undefined,
         6000,
       );
-      const hash = String(configData.hash || "");
-      if (!hash) {
-        throw new Error("Missing config hash");
-      }
+      const hash = String(configData?.hash || "");
       const patchParams: Record<string, unknown> = { raw, baseHash: hash };
       if (opts?.restartDelayMs) {
         patchParams.restartDelayMs = opts.restartDelayMs;

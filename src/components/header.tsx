@@ -28,7 +28,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SearchModal } from "./search-modal";
-import { PairingNotifications } from "./pairing-notifications";
 import { NotificationCenter } from "./notification-center";
 import { ThemeToggle } from "./theme-toggle";
 import { chatStore, type ChatMessage } from "@/lib/chat-store";
@@ -760,9 +759,6 @@ export function Header() {
               {isAlive ? "Emergency stop — kill the gateway" : "Start the gateway"}
             </div>
           </div>
-
-          {/* Pairing Notifications */}
-          <PairingNotifications />
 
           <NotificationCenter />
 

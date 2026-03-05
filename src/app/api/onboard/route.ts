@@ -54,10 +54,7 @@ async function writeJsonAtomic(p: string, data: unknown): Promise<void> {
 
 async function applyGatewayConfigPatch(rawPatch: Record<string, unknown>): Promise<void> {
   const cfg = await gatewayCall<Record<string, unknown>>("config.get", undefined, 15000);
-  const baseHash = String(cfg.hash || "");
-  if (!baseHash) {
-    throw new Error("Missing config hash from gateway.");
-  }
+  const baseHash = String(cfg?.hash || "");
 
   await gatewayCall(
     "config.patch",
@@ -299,7 +296,7 @@ export async function GET() {
 
     return NextResponse.json({
       installed,
-      configured: installed && configExists && hasModel && hasApiKey,
+      configured: hasApiKey,
       configExists,
       hasModel,
       hasApiKey,
